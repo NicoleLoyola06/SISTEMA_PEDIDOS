@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pedidos - David Saravia</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f2f5;
+      min-height: 100vh;
+    }
+    /* ── LOGIN ── */
+    #pantalla-login {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .login-card {
+      background: white;
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      width: 360px;
+    }
+    .login-card h1 { text-align: center; margin-bottom: 24px; font-size: 22px; }
+    .login-card input {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 14px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 15px;
+    }
+    .login-card input:focus { outline: none; border-color: #5b67d8; }
+    .btn-login {
+      width: 100%;
+      padding: 13px;
+      background: #5b67d8;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    .btn-login:hover { background: #4a55c0; }
+    .error-msg { color: #e53e3e; font-size: 13px; margin-top: 8px; text-align: center; }
+
+    /* ── PEDIDOS ── */
+    #pantalla-pedidos { display: none; padding: 32px 20px; }
+    h1.titulo { text-align: center; font-size: 28px; margin-bottom: 28px; }
+    .card {
+      background: white;
+      padding: 28px;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+      max-width: 660px;
+      margin: 0 auto 24px;
+    }
+    .card h2 { font-size: 18px; margin-bottom: 18px; }
+    .card input, .card select {
+      width: 100%;
+      padding: 11px 14px;
+      margin-bottom: 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 15px;
+    }
+    .btn-guardar {
+      width: 100%;
+      padding: 12px;
+      background: #5b67d8;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      cursor: pointer;
+    }
+    .btn-guardar:hover { background: #4a55c0; }
+
+    /* ── TABLA ── */
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th { text-align: left; padding: 10px 8px; border-bottom: 2px solid #eee; color: #555; }
+    td { padding: 10px 8px; border-bottom: 1px solid #f0f0f0; }
+    tr:hover td { background: #fafafa; }
+
+    /* ── ESTADOS ── */
+    .estado {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    .estado-nuevo    { background: #e0f0ff; color: #0066cc; }
+    .estado-picking  { background: #fff3cd; color: #856404; }
+    .estado-packed   { background: #ffe0d0; color: #c45000; }
+    .estado-shipped  { background: #d4edda; color: #155724; }
+
+    .btn-accion {
+      padding: 5px 10px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      margin-right: 4px;
+    }
+    .btn-picking  { background: #fff3cd; color: #856404; }
+    .btn-packed   { background: #ffd8b5; color: #c45000; }
+    .btn-shipped  { background: #c3e6cb; color: #155724; }
+
+    .alerta { padding: 10px 14px; border-radius: 8px; margin-bottom: 14px; font-size: 14px; }
+    .alerta-error { background: #fff5f5; color: #c53030; border: 1px solid #feb2b2; }
+    .alerta-ok    { background: #f0fff4; color: #276749; border: 1px solid #9ae6b4; }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════ PANTALLA LOGIN ═══════════ -->
+<div id="pantalla-login">
+  <div class="login-card">
+    <h1>🔐 Iniciar sesión</h1>
+    <div id="login-error" class="error-msg" style="display:none"></div>
+    <input type="text" id="inp-user" placeholder="Usuario" />
+    <input type="password" id="inp-pass" placeholder="Contraseña" />
+    <button class="btn-login" onclick="hacerLogin()">Entrar</button>
+  </div>
+</div>
+
+<!-- ═══════════ PANTALLA PEDIDOS ═══════════ -->
+<div id="pantalla-pedidos">
+  <h1 class="titulo">Pedidos - David Saravia</h1>
+
+  <!-- Formulario nuevo pedido -->
+  <div class="card">
+    <h2>Nuevo Pedido</h2>
+    <div id="form-alerta" style="display:none"></div>
+    <input type="text" id="inp-cliente" placeholder="Nombre del Cliente" />
+    <select id="inp-producto">
+      <option value="">Nombre del Producto</option>
+    </select>
+    <input type="number" id="inp-cantidad" placeholder="Cantidad del Producto" min="1" />
+    <button class="btn-guardar" onclick="guardarPedido()">Guardar Pedido</button>
+  </div>
+
+  <!-- Lista de pedidos -->
+  <div class="card">
+    <h2>Lista de Pedidos</h2>
+    <div id="tabla-pedidos">
+      <p style="color:#888;font-size:14px">Cargando...</p>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── LOGIN ──────────────────────────────────────────────
+async function hacerLogin() {
+  const user = document.getElementById("inp-user").value.trim();
+  const pass = document.getElementById("inp-pass").value.trim();
+  const errDiv = document.getElementById("login-error");
+  errDiv.style.display = "none";
+
+  if (!user || !pass) {
+    errDiv.textContent = "Por favor completa usuario y contraseña.";
+    errDiv.style.display = "block";
+    return;
+  }
+
+  const res = await fetch("/api/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username: user, password: pass })
+  });
+  const data = await res.json();
+
+  if (data.ok) {
+    document.getElementById("pantalla-login").style.display = "none";
+    document.getElementById("pantalla-pedidos").style.display = "block";
+    cargarProductos();
+    cargarPedidos();
+  } else {
+    errDiv.textContent = data.mensaje;
+    errDiv.style.display = "block";
+  }
+}
+
+// Permite login con Enter
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") hacerLogin();
+});
+
+// ── PRODUCTOS ──────────────────────────────────────────
+async function cargarProductos() {
+  const res = await fetch("/api/productos");
+  const productos = await res.json();
+  const sel = document.getElementById("inp-producto");
+  productos.forEach(p => {
+    const opt = document.createElement("option");
+    opt.value = p.nombre;
+    opt.textContent = `${p.nombre} (stock: ${p.stock}) — S/ ${p.precio}`;
+    sel.appendChild(opt);
+  });
+}
+
+// ── GUARDAR PEDIDO ─────────────────────────────────────
+async function guardarPedido() {
+  const cliente  = document.getElementById("inp-cliente").value.trim();
+  const producto = document.getElementById("inp-producto").value;
+  const cantidad = document.getElementById("inp-cantidad").value;
+  const alertaDiv = document.getElementById("form-alerta");
+
+  alertaDiv.style.display = "none";
+
+  if (!cliente || !producto || !cantidad || cantidad <= 0) {
+    alertaDiv.className = "alerta alerta-error";
+    alertaDiv.textContent = "Por favor completa todos los campos.";
+    alertaDiv.style.display = "block";
+    return;
+  }
+
+  const res = await fetch("/api/pedidos", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      nombre_cliente:  cliente,
+      nombre_producto: producto,
+      cantidad:        parseInt(cantidad)
+    })
+  });
+  const data = await res.json();
+
+  if (data.ok) {
+    alertaDiv.className = "alerta alerta-ok";
+    alertaDiv.textContent = `✅ Pedido guardado. Total: S/ ${data.pedido.total}`;
+    alertaDiv.style.display = "block";
+    document.getElementById("inp-cliente").value = "";
+    document.getElementById("inp-producto").value = "";
+    document.getElementById("inp-cantidad").value = "";
+    cargarPedidos();
+    // Recargar productos para actualizar stock
+    document.getElementById("inp-producto").innerHTML = '<option value="">Nombre del Producto</option>';
+    cargarProductos();
+  } else {
+    alertaDiv.className = "alerta alerta-error";
+    alertaDiv.textContent = `❌ ${data.mensaje}`;
+    alertaDiv.style.display = "block";
+  }
+}
+
+// ── CARGAR PEDIDOS ─────────────────────────────────────
+async function cargarPedidos() {
+  const res = await fetch("/api/pedidos");
+  const pedidos = await res.json();
+  const div = document.getElementById("tabla-pedidos");
+
+  if (pedidos.length === 0) {
+    div.innerHTML = '<p style="color:#888;font-size:14px">No hay pedidos aún.</p>';
+    return;
+  }
+
+  const etiquetaEstado = {
+    nuevo:   '<span class="estado estado-nuevo">Nuevo</span>',
+    picking: '<span class="estado estado-picking">Picking</span>',
+    packed:  '<span class="estado estado-packed">Packed</span>',
+    shipped: '<span class="estado estado-shipped">Shipped ✓</span>',
+  };
+
+  let html = `
+    <table>
+      <tr>
+        <th>#</th>
+        <th>Cliente</th>
+        <th>Producto</th>
+        <th>Cant.</th>
+        <th>Total</th>
+        <th>Estado</th>
+        <th>Acción</th>
+      </tr>`;
+
+  pedidos.forEach(p => {
+    const acciones = botonesAccion(p);
+    html += `
+      <tr>
+        <td>${p.id}</td>
+        <td>${p.nombre_cliente}</td>
+        <td>${p.nombre_producto}</td>
+        <td>${p.cantidad}</td>
+        <td>S/ ${parseFloat(p.total).toFixed(2)}</td>
+        <td>${etiquetaEstado[p.estado] || p.estado}</td>
+        <td>${acciones}</td>
+      </tr>`;
+  });
+
+  html += "</table>";
+  div.innerHTML = html;
+}
+
+// ── BOTONES DE ACCIÓN según estado ────────────────────
+function botonesAccion(p) {
+  if (p.estado === "nuevo") {
+    return `<button class="btn-accion btn-picking" onclick="cambiarEstado(${p.id}, 'picking')">→ Picking</button>`;
+  } else if (p.estado === "picking") {
+    return `<button class="btn-accion btn-packed" onclick="cambiarEstado(${p.id}, 'packed')">→ Packed</button>`;
+  } else if (p.estado === "packed") {
+    return `<button class="btn-accion btn-shipped" onclick="cambiarEstado(${p.id}, 'shipped')">→ Shipped</button>`;
+  } else {
+    return '<span style="color:#888;font-size:12px">Completado</span>';
+  }
+}
+
+// ── CAMBIAR ESTADO ─────────────────────────────────────
+async function cambiarEstado(id, nuevoEstado) {
+  await fetch(`/api/pedidos/${id}/estado`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ estado: nuevoEstado })
+  });
+  cargarPedidos();
+}
+</script>
+
+</body>
+</html>
